@@ -69,7 +69,7 @@
       state: present
 
   - name: check products loaded or not
-    ansible.builtin.command: mongosh --host mongodb.sgcp36.store --eval 'db.get Mongo().get DBNames().indexOf("catalogue")'
+    ansible.builtin.command: mongosh --host mongodb.sgcp36.store --eval 'db.getMongo().getDBNames().indexOf("catalogue")'
     register: catalogue_output
 
   - name: print catalogue output
