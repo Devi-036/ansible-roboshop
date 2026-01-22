@@ -29,3 +29,55 @@
     ansible.builtin.get_url:
       url: https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip
       dest: /tmp/catalogue.zip
+
+  #this module thinks file exist on ansible control server, need to extract on the remote machine
+  #remote_src: yes means files laready exists in catalogue server
+
+  - name: extract catalogue code
+    ansible.builtin.unarchive:
+      src: /tmp/catalogue.zip
+      dest: /app
+      remote_src: yes
+
+  - name: install dependencies
+    community.general.npm:
+      path: /app
+
+  - name: copy catalogue serive to system directory
+    ansible.builtin.copy:
+      src: catalogue.service
+      dest: /etc/systemd/system/catalogue.service
+
+  - name: systemctl deamon reload
+    ansbile.builtin.systemd_service:
+      deamon_reload: true
+
+  - name: start and enable catalogue
+    ansible.builtin.service:
+      name: catalogue
+      state: started
+      enabled: yes
+  
+  - name: copy mongodb repo
+    anabile.builtin.copy:
+      src: mongo.repo
+      dest: /etc/yum.repos.d/mongo.repo
+
+  - name: install mongodb client
+    ansible.builtin.dnf:
+      name: mongodb-mongosh
+      state: present
+
+  - name: check products loaded or not
+    ansible.builtin.command: mongosh --host mongodb.sgcp36.store --eval 'db.get Mongo().get DBNames().indexOf("catalogue")'
+    register: catalogue_output
+
+  - name: print catalogue output
+    ansible.builtin.debug:
+      msg: "{{ catalogue_output }}"
+
+  - name: load products
+    ansible.builtin.shell: mongosh --host mongodb.sgcp36.store </app/db/master-data.js
+    when: catalogue_output.stdout | int < 0
+
+
